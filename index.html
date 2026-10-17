@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PLA ID読み取り・Switch連携 v6</title>
+<title>PLA ID読み取り・Switch連携 v7</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:#101522;color:#eef2fa;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:700px}h1{font-size:21px;margin:2px 0 8px}h2{font-size:16px;margin:0 0 10px}p{line-height:1.6;color:#c4cdde;font-size:14px}section{border:1px solid #394156;background:#1b2333;border-radius:14px;padding:14px;margin:12px 0}button{min-height:44px;border:0;border-radius:9px;padding:10px 13px;font-size:15px;background:#3864b5;color:#fff;cursor:pointer}button.secondary{background:#3b465b}button.stop{background:#863f49}button:disabled{opacity:.5}select{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}input{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hint{font-size:12px;color:#bdc7d9}.pill{font-size:13px;background:#29374a;border-radius:8px;padding:8px 10px;display:inline-block}.id{font-size:36px;font-weight:800;letter-spacing:5px;text-align:center;font-variant-numeric:tabular-nums;margin:14px 0}.found{color:#9be3b7}.bad{color:#f1bc91}#videoArea{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:160px;touch-action:none}#camera{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}#crop{display:block;width:100%;max-width:480px;height:95px;background:#000;border-radius:8px;object-fit:contain}#logs{font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;color:#bdc7d9}.success{color:#9be3b7}.preset{background:#3b465b;font-size:14px}.preset.active{outline:2px solid #fadd44}.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:#edf1f9}.toggle input{width:20px;height:20px;flex:none;accent-color:#4e86e6}.statusline{font-size:13px;line-height:1.5;min-height:20px;margin:8px 0}.input-label{display:block;margin:10px 0 5px;font-size:14px}.fieldnote{color:#b0bed6;font-size:12px}
@@ -11,7 +11,7 @@
 </style>
 </head>
 <body>
-<h1>PLA トレーナーID読み取り・Switch連携 v6</h1>
+<h1>PLA トレーナーID読み取り・Switch連携 v7</h1>
 <p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取り、条件一致時にntfyへ通知する試験版です。<strong>セーブデータ削除やゲームの自動周回は行いません。</strong></p>
 <section>
 <h2>① カメラを起動</h2>
@@ -38,7 +38,7 @@
 
 <section>
 <h2>③ Switch連携（連続操作テスト）</h2>
-<p class="hint warning">GitHub PagesはHTTPS、Picoの操作ページはHTTPなので、直接通信はできません。テスト用の公開MQTT中継を利用します。<strong>公開中継では秘密の通信はできません。</strong> この段階ではA・B・左右の最大3回までの試験操作のみ許可します。セーブ削除、繰り返し周回、長押し操作は無効です。</p>
+<p class="hint warning">GitHub PagesはHTTPS、Picoの操作ページはHTTPなので、直接通信はできません。テスト用の公開MQTT中継を利用します。<strong>公開中継では秘密の通信はできません。</strong> この段階ではA・B・左右の短い試験操作のみ許可します。セーブ削除、繰り返し周回、長押し操作は無効です。</p>
 <label class="input-label" for="mqttChannel">MQTTトピック末尾（Windowsで作成された mqtt_channel_private.txt の32桁）</label>
 <input id="mqttChannel" placeholder="32桁の英数字" autocomplete="off" spellcheck="false" autocapitalize="none">
 <label class="input-label" for="mqttToken">MQTT試験用の秘密キー（mqtt_channel_private.txt内）</label>
@@ -57,8 +57,26 @@
 <label class="toggle"><input type="checkbox" id="autoMiss">IDが3回連続で不一致なら上の操作を1セット実行（初期OFF）</label>
 <p class="hint warning">安全なHOME画面などでのみテストしてください。OCRの信頼度85%以上が必要です。<strong>1セット実行したら必ず監視を停止し、自動で再開しません。</strong> 停止しても送信済みのボタンは取り消せません。iPhoneの画面は開いたままにしてください。</p>
 </section>
+<section id="homeSection">
+<h2>④ Switch HOMEからゲーム起動（v7・段階確認）</h2>
+<p class="hint warning"><strong>毎回、画面を目視確認してからAを1回だけ送信します。</strong> HOMEから自動で全画面を進める機能ではありません。Switch Liteで<strong>『Pokémon LEGENDS アルセウス』のアイコンにカーソル</strong>を合わせてから開始してください。ほかのソフトが動いている・再開中の場合は、予期しない画面になるので手動で終了・整理してください。</p>
+<label class="input-label" for="homeStage">現在のSwitch Liteの画面を選択</label>
+<select id="homeStage" aria-label="HOMEからの起動段階">
+<option value="home">① HOME画面：アルセウスのアイコンを選択済み</option>
+<option value="profile">② ユーザー選択画面：使うユーザーを選択済み（表示された場合のみ）</option>
+<option value="title">③ ゲームのタイトル画面：Aで開始できる表示がある</option>
+</select>
+<label class="toggle" style="margin-top:12px"><input type="checkbox" id="homeConfirmed">Switch Liteが上で選んだ画面になっていることを確認した</label>
+<div class="actions">
+  <button id="runHomeStage" disabled>選択した段階を実行（Aを1回）</button>
+  <button id="cancelHomeStage" class="stop">起動操作を停止</button>
+</div>
+<div id="homeStatus" class="statusline" role="status" aria-live="polite">HOME起動：待機中（MQTT接続と画面確認が必要です）</div>
+<p class="hint">操作前に3秒のカウントダウンを表示します。1回送信したら停止し、次の画面は自分の目で確認してください。ユーザー選択が出なければ②は飛ばしてください。画面が変化しない場合は連打せず、MQTT接続・Picoの受信ログを確認してください。</p>
+<p class="hint warning">送信先の公開MQTTブローカーは操作完了の応答を返しません。画面で実行されたかは保証できません。ゲームのロード時間や確認画面は環境で変わるため、時間固定の自動連打はまだ行いません。</p>
+</section>
 <section>
-<h2>④ ntfy通知</h2>
+<h2>⑤ ntfy通知</h2>
 <p class="hint">ntfyアプリで <code>ntfy.sh</code> の同じトピックを購読してください。トピックは公開可能な名前のため、推測されにくいランダムな名前を使用してください。</p>
 <label class="input-label" for="ntfyTopic">ntfyトピック名（URL全体ではなく名前だけ）</label>
 <input id="ntfyTopic" placeholder="例: pla_alert_F8p4xK7z29Qm" maxlength="64" autocomplete="off" spellcheck="false" autocapitalize="none">
@@ -81,6 +99,7 @@ const notifiedIds = new Set();
 // MQTT bridge (test-only). No save delete, no unbounded macros.
 let mqttClient = null, mqttReady = false, autoActionUsed = false;
 let macroRunning=false,macroGeneration=0;
+let homeRunning=false,homeGeneration=0;
 const macroPresets={a3:['a','a','a'],rightleft:['dpad_right','dpad_left'],a1:['a']};
 let lastMqttError = '';
 const mqttUI = text => $('mqttStatus').textContent = text;
@@ -95,7 +114,7 @@ $('mqttChannel').value=stored('pla_mqtt_suffix_v5','');
 $('mqttToken').value=stored('pla_mqtt_token_v5','');
 $('mqttChannel').addEventListener('change',()=>store('pla_mqtt_suffix_v5',$('mqttChannel').value.trim()));
 $('mqttToken').addEventListener('change',()=>store('pla_mqtt_token_v5',$('mqttToken').value));
-function mqttDisableButtons(){mqttReady=false;$('btnMqttTap').disabled=true;cancelMacro('MQTT接続が切れました');syncMacroButtons()}
+function mqttDisableButtons(){mqttReady=false;$('btnMqttTap').disabled=true;cancelMacro('MQTT接続が切れました');cancelHomeStage('MQTT接続が切れました');syncMacroButtons();syncHomeButtons()}
 function mqttDisconnect(){
  mqttDisableButtons();
  if(mqttClient){const c=mqttClient;mqttClient=null;c.end(true)}
@@ -113,7 +132,7 @@ $('mqttConnect').onclick=()=>{
    clientId:'pla-ocr-'+Math.random().toString(16).slice(2)
  });
  mqttClient=c;
- c.on('connect',()=>{if(mqttClient!==c)return;mqttReady=true;$('btnMqttTap').disabled=false;syncMacroButtons();mqttUI('中継に接続しました（Picoが受信できたかはAボタン試験で確認）');log('MQTT WSS接続')});
+ c.on('connect',()=>{if(mqttClient!==c)return;mqttReady=true;$('btnMqttTap').disabled=false;syncMacroButtons();syncHomeButtons();mqttUI('中継に接続しました（Picoが受信できたかはAボタン試験で確認）');log('MQTT WSS接続')});
  c.on('reconnect',()=>{if(mqttClient===c){mqttDisableButtons();mqttUI('再接続中…')}});
  c.on('close',()=>{if(mqttClient===c){mqttDisableButtons();mqttUI('中継から切断されました')}});
  c.on('error',e=>{if(mqttClient===c&&lastMqttError!==e.message){lastMqttError=e.message;mqttUI('中継エラー: '+e.message);log('MQTT '+e.message)}});
@@ -133,12 +152,14 @@ $('btnMqttTap').onclick=async()=>{
  $('btnMqttTap').disabled=true;
  try{await mqttTap('a');mqttUI('Aの送信を受け付けました。Switchの動きを確認してください。');log('MQTT A を送信')}
  catch(e){mqttUI('送信エラー: '+e.message);log('MQTT送信エラー '+e.message)}
- finally{$('btnMqttTap').disabled=!mqttReady}
+ finally{$('btnMqttTap').disabled=!mqttReady||macroRunning||homeRunning}
 };
 $('autoMiss').checked=false;
 function syncMacroButtons(){
- $('runManualMacro').disabled=!mqttReady||macroRunning;
+ $('runManualMacro').disabled=!mqttReady||macroRunning||homeRunning;
  $('macroPreset').disabled=macroRunning;
+ $('btnMqttTap').disabled=!mqttReady||macroRunning||homeRunning;
+ syncHomeButtons();
 }
 function cancelMacro(reason='操作を停止しました'){
  ++macroGeneration; // already published MQTT messages cannot be recalled
@@ -148,6 +169,7 @@ function cancelMacro(reason='操作を停止しました'){
 }
 async function runMacro(reason){
  if(macroRunning)throw Error('連続操作が既に実行中です');
+ if(homeRunning)throw Error('HOME起動操作が進行中です');
  if(!mqttReady)throw Error('MQTT接続を先に確認してください');
  if(document.hidden)throw Error('Safariを前面表示してください');
  const steps=macroPresets[$('macroPreset').value];
@@ -180,9 +202,59 @@ $('runManualMacro').onclick=async()=>{
  stopMonitoring();
  await runMacro('手動テスト');
 };
-$('stopMacro').onclick=()=>{cancelMacro('手動停止');$('autoMiss').checked=false};
+$('stopMacro').onclick=()=>{cancelMacro('手動停止');cancelHomeStage('停止ボタンで中止');$('autoMiss').checked=false};
 $('macroPreset').addEventListener('change',()=>{$('macroStatus').textContent='連続操作：'+macroPresets[$('macroPreset').value].join(' → ')+' を選択中'});
 syncMacroButtons();
+
+// v7: HOME起動の段階テスト。誤操作を防ぐため、毎段階ユーザーの画面確認が必要。
+const homeStageLabels={home:'HOME画面でアルセウスを起動',profile:'選んだユーザーを決定',title:'タイトル画面から開始'};
+function syncHomeButtons(){
+ $('runHomeStage').disabled=!mqttReady||macroRunning||homeRunning||!$('homeConfirmed').checked;
+ $('homeStage').disabled=homeRunning;
+}
+function cancelHomeStage(reason='送信を取り止めました'){
+ ++homeGeneration;
+ if(homeRunning){homeRunning=false;log('HOME操作停止：'+reason)}
+ $('homeConfirmed').checked=false;
+ $('homeStatus').textContent='HOME起動：'+reason+'（送信済みのAは取り消せません）';
+ syncHomeButtons();syncMacroButtons();
+}
+$('homeStage').addEventListener('change',()=>{
+ $('homeConfirmed').checked=false;
+ $('homeStatus').textContent='HOME起動：'+homeStageLabels[$('homeStage').value]+' を選択中。Switchの画面を確認してください';
+ syncHomeButtons();
+});
+$('homeConfirmed').addEventListener('change',syncHomeButtons);
+$('cancelHomeStage').onclick=()=>cancelHomeStage('手動で停止しました');
+$('runHomeStage').onclick=async()=>{
+ if(homeRunning||macroRunning||!mqttReady||document.hidden||!$('homeConfirmed').checked)return;
+ const stage=$('homeStage').value;
+ if(!Object.prototype.hasOwnProperty.call(homeStageLabels,stage))return;
+ if(!window.confirm('Switch Liteの画面を確認してください。\n'+homeStageLabels[stage]+' のためAボタンを1回だけ送信します。続けますか？'))return;
+ const generation=++homeGeneration;
+ homeRunning=true;
+ $('homeConfirmed').checked=false;
+ stopMonitoring();
+ $('autoMiss').checked=false;
+ syncHomeButtons();syncMacroButtons();
+ try{
+   for(let remaining=3;remaining>=1;remaining--){
+     if(generation!==homeGeneration||document.hidden||!mqttReady)throw Error('送信前に停止しました');
+     $('homeStatus').textContent='HOME起動：'+homeStageLabels[stage]+' ／ '+remaining+'秒後にAを1回送信';
+     await sleep(1000);
+   }
+   if(generation!==homeGeneration||document.hidden||!mqttReady)throw Error('送信前に停止しました');
+   await mqttTap('a');
+   if(generation!==homeGeneration)return;
+   $('homeStatus').textContent='HOME起動：Aを1回中継へ送信しました。Switchの画面を確認してから次の段階を選んでください';
+   log('HOME起動テスト ['+stage+'] Aを1回送信。Switch実行完了は未確認');
+ }catch(e){
+   if(generation===homeGeneration){$('homeStatus').textContent='HOME起動：'+e.message;log('HOME起動エラー：'+e.message)}
+ }finally{
+   if(generation===homeGeneration){homeRunning=false;syncHomeButtons();syncMacroButtons()}
+ }
+};
+syncHomeButtons();
 
 function stored(key, fallback=''){try{return localStorage.getItem(key) ?? fallback}catch(_){return fallback}}
 function store(key, value){try{localStorage.setItem(key,value)}catch(_){}}
@@ -253,13 +325,13 @@ overlay.addEventListener('pointermove',e=>{if(!drag)return;drag.rect=makeRect(dr
 overlay.addEventListener('pointerup',e=>{if(!drag)return;const r=makeRect(drag.start,point(e));if(r.w>.01&&r.h>.01){roi=r;log('認識枠を設定しました')}drag=null;paint()});
 window.addEventListener('resize',paint);
 $('camStart').onclick=async()=>{try{stopCamera();if(!navigator.mediaDevices?.getUserMedia)throw Error('HTTPSで開いてください');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;await video.play();area.style.minHeight='0';paint();log('カメラ開始')}catch(e){log('カメラ開始失敗: '+e.message);alert('カメラを利用できません。GitHub PagesなどHTTPSで開き、Safariのカメラ許可を確認してください。')}};
-function stopCamera(){stopMonitoring();cancelMacro('カメラ停止');$('autoMiss').checked=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;area.style.minHeight='160px'}
+function stopCamera(){stopMonitoring();cancelMacro('カメラ停止');cancelHomeStage('カメラ停止');$('autoMiss').checked=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;area.style.minHeight='160px'}
 $('camStop').onclick=()=>{stopCamera();paint();log('カメラ停止')};
 $('defaultArea').onclick=()=>{roi={x:.35,y:.44,w:.3,h:.13};paint();log('中央に仮枠を表示')};
 function capture(){if(!stream||!video.videoWidth||!roi)throw Error('カメラを開始し、数字6桁を囲んでください');const w=video.videoWidth,h=video.videoHeight;const sx=Math.floor(roi.x*w),sy=Math.floor(roi.y*h),sw=Math.max(1,Math.floor(roi.w*w)),sh=Math.max(1,Math.floor(roi.h*h));const ctx=crop.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#fff';ctx.fillRect(0,0,crop.width,crop.height);ctx.drawImage(video,sx,sy,sw,sh,0,0,crop.width,crop.height);return crop}
 $('preview').onclick=()=>{try{capture();log('切り出し画像を更新')}catch(e){alert(e.message)}};
 function stopMonitoring(){stopRequested=true;if(timer){clearInterval(timer);timer=null}if(reading)$('status').textContent='停止処理中';else $('status').textContent='停止中'}
-$('stop').onclick=()=>{stopMonitoring();cancelMacro('監視停止ボタンを押しました');$('autoMiss').checked=false;log('監視を停止')};
+$('stop').onclick=()=>{stopMonitoring();cancelMacro('監視停止ボタンを押しました');cancelHomeStage('監視停止ボタンを押しました');$('autoMiss').checked=false;log('監視を停止')};
 async function beep(){try{if(!audioCtx)return;await audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=860;g.gain.value=.10;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.35)}catch(_){}}
 async function analyze(){if(reading)return;if(!stream){log('カメラ未起動');return}reading=true;$('status').textContent='読取中';try{const canvas=capture();if(!worker){if(!window.Tesseract)throw Error('OCRライブラリを取得できません。インターネット接続を確認してください。');$('status').textContent='OCRの準備中（初回のみ時間がかかります）';worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}const r=await worker.recognize(canvas);if(stopRequested)return;const digits=(r.data.text||'').replace(/[^0-9]/g,'');const found=/^\d{6}$/.test(digits)?digits:'';$('idResult').textContent=found||'------';$('status').textContent='読取終了（参考信頼度 '+Math.round(r.data.confidence||0)+'%）';if(!found){last='';streak=0;$('decision').textContent='6桁を読めませんでした。枠・反射・ピントを調整してください。';return}if(found===last)streak++;else{last=found;streak=1}if(streak<2){$('decision').textContent='読取候補：'+found+'（あと1回同じ結果で確定）';return}const regex=compilePattern();const ok=regex.test(found);$('idResult').className='id '+(ok?'found':'bad');$('decision').textContent=ok?'条件一致：'+found+'。監視を停止しました。':'条件不一致：'+found+'。監視を続けます。';log((ok?'一致':'不一致')+' '+found);
 if(ok){stopMonitoring();navigator.vibrate?.([200,100,200]);beep();await notifyMatch(found)}
@@ -273,9 +345,9 @@ else if(timer && $('autoMiss').checked && !autoActionUsed && streak >= 3 &&
 }}
 catch(e){$('status').textContent='認識エラー';log(e.message)}finally{reading=false}}
 $('once').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}stopRequested=false;analyze()};
-$('monitor').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}if(macroRunning){alert('連続操作中です。完了後に開始してください');return}if($('autoMiss').checked&&!mqttReady){alert('自動操作を有効にするにはMQTT接続が必要です');return}stopMonitoring();stopRequested=false;resetRecognition();autoActionUsed=false;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
-document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMonitoring();cancelMacro('Safariが非表示になりました');$('autoMiss').checked=false;log('Safariが非表示になったため停止')}});
-window.addEventListener('pagehide',()=>{stopCamera();cancelMacro('ページを閉じました');mqttDisconnect();worker?.terminate()});
+$('monitor').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}if(macroRunning||homeRunning){alert('Switch操作中です。完了後に開始してください');return}if($('autoMiss').checked&&!mqttReady){alert('自動操作を有効にするにはMQTT接続が必要です');return}stopMonitoring();stopRequested=false;resetRecognition();autoActionUsed=false;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMonitoring();cancelMacro('Safariが非表示になりました');cancelHomeStage('Safariが非表示になりました');$('autoMiss').checked=false;log('Safariが非表示になったため停止')}});
+window.addEventListener('pagehide',()=>{stopCamera();cancelMacro('ページを閉じました');cancelHomeStage('ページを閉じました');mqttDisconnect();worker?.terminate()});
 </script>
 </body>
 </html>
