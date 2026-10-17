@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PLA ID読み取り・ntfy通知 v4</title>
+<title>PLA ID読み取り・Switch連携 v5</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:#101522;color:#eef2fa;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:700px}h1{font-size:21px;margin:2px 0 8px}h2{font-size:16px;margin:0 0 10px}p{line-height:1.6;color:#c4cdde;font-size:14px}section{border:1px solid #394156;background:#1b2333;border-radius:14px;padding:14px;margin:12px 0}button{min-height:44px;border:0;border-radius:9px;padding:10px 13px;font-size:15px;background:#3864b5;color:#fff;cursor:pointer}button.secondary{background:#3b465b}button.stop{background:#863f49}button:disabled{opacity:.5}input{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hint{font-size:12px;color:#bdc7d9}.pill{font-size:13px;background:#29374a;border-radius:8px;padding:8px 10px;display:inline-block}.id{font-size:36px;font-weight:800;letter-spacing:5px;text-align:center;font-variant-numeric:tabular-nums;margin:14px 0}.found{color:#9be3b7}.bad{color:#f1bc91}#videoArea{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:160px;touch-action:none}#camera{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}#crop{display:block;width:100%;max-width:480px;height:95px;background:#000;border-radius:8px;object-fit:contain}#logs{font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;color:#bdc7d9}.success{color:#9be3b7}.preset{background:#3b465b;font-size:14px}.preset.active{outline:2px solid #fadd44}.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:#edf1f9}.toggle input{width:20px;height:20px;flex:none;accent-color:#4e86e6}.statusline{font-size:13px;line-height:1.5;min-height:20px;margin:8px 0}.input-label{display:block;margin:10px 0 5px;font-size:14px}.fieldnote{color:#b0bed6;font-size:12px}
+#mqttStatus{font-size:13px;min-height:28px;line-height:1.6;color:#c8d7e9}#btnMqttTap{background:#3e7661}.warning{border-left:3px solid #d2ac46;padding-left:9px}
 </style>
 </head>
 <body>
-<h1>PLA トレーナーID読み取り・ntfy通知 v4</h1>
-<p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取り、条件一致時にntfyへ通知する試験版です。<strong>Switchの操作・セーブ削除は実行しません。</strong></p>
+<h1>PLA トレーナーID読み取り・Switch連携 v5</h1>
+<p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取り、条件一致時にntfyへ通知する試験版です。<strong>安全な操作テストのみ対応しています。<strong>セーブ削除・自動周回は行いません。</strong></strong></p>
 <section>
 <h2>① カメラを起動</h2>
 <div class="actions"><button id="camStart">カメラを開始</button><button class="secondary" id="camStop">カメラを停止</button></div>
@@ -34,8 +35,22 @@
 <div class="pill" id="status">待機中</div><div class="id" id="idResult">------</div><div id="decision">認識結果はここに表示されます。</div>
 <p class="hint">約3秒間隔で読み取り、同じ6桁を2回連続で検出したら確定します。一致すると監視を停止します。OCRの誤認識を完全には防げません。</p>
 </section>
+
 <section>
-<h2>③ ntfy通知</h2>
+<h2>③ Switch連携（安全なテスト）</h2>
+<p class="hint warning">GitHub PagesはHTTPS、Picoの操作ページはHTTPなので、直接通信はできません。テスト用の公開MQTT中継を利用します。<strong>公開中継では秘密の通信はできません。</strong> この段階ではA・B・左右の単発操作のみ許可します。セーブ削除、周回マクロ、長押し操作は無効です。</p>
+<label class="input-label" for="mqttChannel">MQTTトピック末尾（Windowsで作成された mqtt_channel_private.txt の32桁）</label>
+<input id="mqttChannel" placeholder="32桁の英数字" autocomplete="off" spellcheck="false" autocapitalize="none">
+<label class="input-label" for="mqttToken">MQTT試験用の秘密キー（mqtt_channel_private.txt内）</label>
+<input id="mqttToken" type="password" placeholder="16文字以上" autocomplete="off" spellcheck="false" autocapitalize="none">
+<p class="hint">これらの値はこの端末だけに保存され、GitHubのHTMLには埋め込みません。ただし中継サーバーには平文のMQTTメッセージが流れるため、試験用としてのみ使用してください。</p>
+<div class="actions"><button id="mqttConnect">MQTT接続</button><button id="mqttDisconnect" class="secondary">切断</button><button id="btnMqttTap" class="secondary" disabled>Aを1回テスト</button></div>
+<div id="mqttStatus" role="status">未接続</div>
+<label class="toggle"><input type="checkbox" id="autoMiss">ID不一致を3回連続で読み取ったらAを1回だけ送信（試験用・初期OFF）</label>
+<p class="hint">1回送信したら監視は自動停止します。誤読・画面の移動による危険を避けるため、Switchの安全なメニュー画面でのみテストしてください。希望IDが一致した場合は従来通り停止・ntfy通知となり、操作は送信しません。</p>
+</section>
+<section>
+<h2>④ ntfy通知</h2>
 <p class="hint">ntfyアプリで <code>ntfy.sh</code> の同じトピックを購読してください。トピックは公開可能な名前のため、推測されにくいランダムな名前を使用してください。</p>
 <label class="input-label" for="ntfyTopic">ntfyトピック名（URL全体ではなく名前だけ）</label>
 <input id="ntfyTopic" placeholder="例: pla_alert_F8p4xK7z29Qm" maxlength="64" autocomplete="off" spellcheck="false" autocapitalize="none">
@@ -47,12 +62,71 @@
 </section>
 <section><h2>動作ログ</h2><div id="logs" role="log"></div></section>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.14.1/mqtt.min.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 const video=$('camera'),overlay=$('overlay'),area=$('videoArea'),crop=$('crop');
 let stream=null,roi=null,drag=null,worker=null,reading=false,timer=null,last='',streak=0,stopRequested=false,audioCtx=null;
 const notifiedIds = new Set();
+
+// MQTT bridge (test-only). No save delete, no unbounded macros.
+let mqttClient = null, mqttReady = false, autoActionUsed = false;
+let lastMqttError = '';
+const mqttUI = text => $('mqttStatus').textContent = text;
+function mqttSettings(){
+ const suffix = $('mqttChannel').value.trim().toLowerCase();
+ const token = $('mqttToken').value;
+ if(!/^[a-f0-9]{32}$/.test(suffix)) throw Error('トピック末尾は32桁の英数字です');
+ if(token.length < 16) throw Error('認証キーは16文字以上必要です');
+ return {topic: 'pla/remote/'+suffix, token};
+}
+$('mqttChannel').value=stored('pla_mqtt_suffix_v5','');
+$('mqttToken').value=stored('pla_mqtt_token_v5','');
+$('mqttChannel').addEventListener('change',()=>store('pla_mqtt_suffix_v5',$('mqttChannel').value.trim()));
+$('mqttToken').addEventListener('change',()=>store('pla_mqtt_token_v5',$('mqttToken').value));
+function mqttDisableButtons(){mqttReady=false;$('btnMqttTap').disabled=true}
+function mqttDisconnect(){
+ mqttDisableButtons();
+ if(mqttClient){const c=mqttClient;mqttClient=null;c.end(true)}
+ mqttUI('切断しました');
+}
+$('mqttDisconnect').onclick=mqttDisconnect;
+$('mqttConnect').onclick=()=>{
+ let settings;
+ try{settings=mqttSettings();if(!window.mqtt)throw Error('MQTT.jsが読み込めません。インターネット接続を確認してください。')}
+ catch(e){mqttUI(e.message);return}
+ if(mqttClient)mqttDisconnect();
+ mqttUI('接続中…');
+ const c=mqtt.connect('wss://broker.emqx.io:8084/mqtt',{
+   protocolVersion:4,clean:true,keepalive:30,reconnectPeriod:4000,
+   clientId:'pla-ocr-'+Math.random().toString(16).slice(2)
+ });
+ mqttClient=c;
+ c.on('connect',()=>{if(mqttClient!==c)return;mqttReady=true;$('btnMqttTap').disabled=false;mqttUI('中継に接続しました（Picoが受信できたかはAボタン試験で確認）');log('MQTT WSS接続')});
+ c.on('reconnect',()=>{if(mqttClient===c){mqttDisableButtons();mqttUI('再接続中…')}});
+ c.on('close',()=>{if(mqttClient===c){mqttDisableButtons();mqttUI('中継から切断されました')}});
+ c.on('error',e=>{if(mqttClient===c&&lastMqttError!==e.message){lastMqttError=e.message;mqttUI('中継エラー: '+e.message);log('MQTT '+e.message)}});
+};
+function mqttTap(button){
+ return new Promise((resolve,reject)=>{
+   if(!mqttReady||!mqttClient||!mqttClient.connected)return reject(Error('MQTTに接続してください'));
+   if(!['a','b','dpad_left','dpad_right'].includes(button))return reject(Error('この版では許可されていないボタンです'));
+   let settings;
+   try{settings=mqttSettings()}catch(e){reject(e);return}
+   // QoS0 / retain=false: don't replay old buttons on reconnection.
+   mqttClient.publish(settings.topic, 'TAP|'+button+'|'+settings.token,
+      {qos:0,retain:false}, err=>err?reject(err):resolve());
+ });
+}
+$('btnMqttTap').onclick=async()=>{
+ $('btnMqttTap').disabled=true;
+ try{await mqttTap('a');mqttUI('Aの送信を受け付けました。Switchの動きを確認してください。');log('MQTT A を送信')}
+ catch(e){mqttUI('送信エラー: '+e.message);log('MQTT送信エラー '+e.message)}
+ finally{$('btnMqttTap').disabled=!mqttReady}
+};
+$('autoMiss').checked=false;
+
 function stored(key, fallback=''){try{return localStorage.getItem(key) ?? fallback}catch(_){return fallback}}
 function store(key, value){try{localStorage.setItem(key,value)}catch(_){}}
 function resetRecognition(){last='';streak=0;$('idResult').className='id'}
@@ -130,12 +204,21 @@ $('preview').onclick=()=>{try{capture();log('切り出し画像を更新')}catch
 function stopMonitoring(){stopRequested=true;if(timer){clearInterval(timer);timer=null}if(reading)$('status').textContent='停止処理中';else $('status').textContent='停止中'}
 $('stop').onclick=()=>{stopMonitoring();log('監視を停止')};
 async function beep(){try{if(!audioCtx)return;await audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=860;g.gain.value=.10;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.35)}catch(_){}}
-async function analyze(){if(reading)return;if(!stream){log('カメラ未起動');return}reading=true;$('status').textContent='読取中';try{const canvas=capture();if(!worker){if(!window.Tesseract)throw Error('OCRライブラリを取得できません。インターネット接続を確認してください。');$('status').textContent='OCRの準備中（初回のみ時間がかかります）';worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}const r=await worker.recognize(canvas);if(stopRequested)return;const digits=(r.data.text||'').replace(/[^0-9]/g,'');const found=/^\d{6}$/.test(digits)?digits:'';$('idResult').textContent=found||'------';$('status').textContent='読取終了（参考信頼度 '+Math.round(r.data.confidence||0)+'%）';if(!found){last='';streak=0;$('decision').textContent='6桁を読めませんでした。枠・反射・ピントを調整してください。';return}if(found===last)streak++;else{last=found;streak=1}if(streak<2){$('decision').textContent='読取候補：'+found+'（あと1回同じ結果で確定）';return}const regex=compilePattern();const ok=regex.test(found);$('idResult').className='id '+(ok?'found':'bad');$('decision').textContent=ok?'条件一致：'+found+'。監視を停止しました。':'条件不一致：'+found+'。監視を続けます。';log((ok?'一致':'不一致')+' '+found);if(ok){stopMonitoring();navigator.vibrate?.([200,100,200]);beep();await notifyMatch(found)}}
+async function analyze(){if(reading)return;if(!stream){log('カメラ未起動');return}reading=true;$('status').textContent='読取中';try{const canvas=capture();if(!worker){if(!window.Tesseract)throw Error('OCRライブラリを取得できません。インターネット接続を確認してください。');$('status').textContent='OCRの準備中（初回のみ時間がかかります）';worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}const r=await worker.recognize(canvas);if(stopRequested)return;const digits=(r.data.text||'').replace(/[^0-9]/g,'');const found=/^\d{6}$/.test(digits)?digits:'';$('idResult').textContent=found||'------';$('status').textContent='読取終了（参考信頼度 '+Math.round(r.data.confidence||0)+'%）';if(!found){last='';streak=0;$('decision').textContent='6桁を読めませんでした。枠・反射・ピントを調整してください。';return}if(found===last)streak++;else{last=found;streak=1}if(streak<2){$('decision').textContent='読取候補：'+found+'（あと1回同じ結果で確定）';return}const regex=compilePattern();const ok=regex.test(found);$('idResult').className='id '+(ok?'found':'bad');$('decision').textContent=ok?'条件一致：'+found+'。監視を停止しました。':'条件不一致：'+found+'。監視を続けます。';log((ok?'一致':'不一致')+' '+found);
+if(ok){stopMonitoring();navigator.vibrate?.([200,100,200]);beep();await notifyMatch(found)}
+else if(timer && $('autoMiss').checked && !autoActionUsed && streak >= 3 &&
+        Number(r.data.confidence || 0) >= 85 && mqttReady) {
+  autoActionUsed=true;
+  stopMonitoring(); // fail-closed; never repeatedly press on an unchanged ID
+  try {await mqttTap('a');log('ID不一致のため、Aを1回だけ送信: '+found);
+       $('decision').textContent='不一致 '+found+'：Aを1回送信しました。監視停止中。';}
+  catch(e){log('A送信失敗: '+e.message);$('decision').textContent='不一致：A送信に失敗しました。 '+e.message;}
+}}
 catch(e){$('status').textContent='認識エラー';log(e.message)}finally{reading=false}}
 $('once').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}stopRequested=false;analyze()};
-$('monitor').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}stopMonitoring();stopRequested=false;resetRecognition();try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
+$('monitor').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}stopMonitoring();stopRequested=false;resetRecognition();autoActionUsed=false;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMonitoring();log('Safariが非表示になったため停止')}});
-window.addEventListener('pagehide',()=>{stopCamera();worker?.terminate()});
+window.addEventListener('pagehide',()=>{stopCamera();mqttDisconnect();worker?.terminate()});
 </script>
 </body>
 </html>
