@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PLA トレーナーID読み取りテスト</title>
+<title>PLA ID読み取り・ntfy通知 v4</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:#101522;color:#eef2fa;color-scheme:dark}
-*{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:700px}h1{font-size:21px;margin:2px 0 8px}h2{font-size:16px;margin:0 0 10px}p{line-height:1.6;color:#c4cdde;font-size:14px}section{border:1px solid #394156;background:#1b2333;border-radius:14px;padding:14px;margin:12px 0}button{min-height:44px;border:0;border-radius:9px;padding:10px 13px;font-size:15px;background:#3864b5;color:#fff;cursor:pointer}button.secondary{background:#3b465b}button.stop{background:#863f49}button:disabled{opacity:.5}input{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hint{font-size:12px;color:#bdc7d9}.pill{font-size:13px;background:#29374a;border-radius:8px;padding:8px 10px;display:inline-block}.id{font-size:36px;font-weight:800;letter-spacing:5px;text-align:center;font-variant-numeric:tabular-nums;margin:14px 0}.found{color:#9be3b7}.bad{color:#f1bc91}#videoArea{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:160px;touch-action:none}#camera{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}#crop{display:block;width:100%;max-width:480px;height:95px;background:#000;border-radius:8px;object-fit:contain}#logs{font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;color:#bdc7d9}.success{color:#9be3b7}
+*{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:700px}h1{font-size:21px;margin:2px 0 8px}h2{font-size:16px;margin:0 0 10px}p{line-height:1.6;color:#c4cdde;font-size:14px}section{border:1px solid #394156;background:#1b2333;border-radius:14px;padding:14px;margin:12px 0}button{min-height:44px;border:0;border-radius:9px;padding:10px 13px;font-size:15px;background:#3864b5;color:#fff;cursor:pointer}button.secondary{background:#3b465b}button.stop{background:#863f49}button:disabled{opacity:.5}input{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hint{font-size:12px;color:#bdc7d9}.pill{font-size:13px;background:#29374a;border-radius:8px;padding:8px 10px;display:inline-block}.id{font-size:36px;font-weight:800;letter-spacing:5px;text-align:center;font-variant-numeric:tabular-nums;margin:14px 0}.found{color:#9be3b7}.bad{color:#f1bc91}#videoArea{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:160px;touch-action:none}#camera{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}#crop{display:block;width:100%;max-width:480px;height:95px;background:#000;border-radius:8px;object-fit:contain}#logs{font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;color:#bdc7d9}.success{color:#9be3b7}.preset{background:#3b465b;font-size:14px}.preset.active{outline:2px solid #fadd44}.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:#edf1f9}.toggle input{width:20px;height:20px;flex:none;accent-color:#4e86e6}.statusline{font-size:13px;line-height:1.5;min-height:20px;margin:8px 0}.input-label{display:block;margin:10px 0 5px;font-size:14px}.fieldnote{color:#b0bed6;font-size:12px}
 </style>
 </head>
 <body>
-<h1>PLA トレーナーID読み取り</h1>
-<p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取る試験版です。<strong>Switchの操作・セーブ削除は実行しません。</strong></p>
+<h1>PLA トレーナーID読み取り・ntfy通知 v4</h1>
+<p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取り、条件一致時にntfyへ通知する試験版です。<strong>Switchの操作・セーブ削除は実行しません。</strong></p>
 <section>
 <h2>① カメラを起動</h2>
 <div class="actions"><button id="camStart">カメラを開始</button><button class="secondary" id="camStop">カメラを停止</button></div>
@@ -22,12 +22,28 @@
 </section>
 <section>
 <h2>② IDの認識・条件判定</h2>
-<label for="pattern">希望するIDの条件（正規表現）</label>
-<input id="pattern" value="^39\d{4}$" spellcheck="false" autocomplete="off" aria-label="ID条件">
-<p class="hint">例：<code>^39\d{4}$</code> は39から始まる6桁、<code>^\d{4}39$</code> は39で終わる6桁です。</p>
+<label class="input-label" for="pattern">希望するIDの条件（6桁）</label>
+<div class="actions" id="presets">
+<button type="button" class="preset" data-mask="39xxxx">39xxxx</button>
+<button type="button" class="preset" data-mask="xx39xx">xx39xx</button>
+<button type="button" class="preset" data-mask="xxxx39">xxxx39</button>
+</div>
+<input id="pattern" value="39xxxx" spellcheck="false" autocomplete="off" autocapitalize="none" aria-label="ID条件" maxlength="40">
+<p class="hint"><strong>xは任意の数字1桁</strong>です。例：<code>xx39xx</code> は3・4桁目が39のIDに一致します。従来の正規表現（例：<code>^\d{2}39\d{2}$</code>）も使用できます。</p>
 <div class="actions"><button id="once">1回読み取る</button><button id="monitor">連続監視を開始</button><button id="stop" class="stop">停止</button></div>
 <div class="pill" id="status">待機中</div><div class="id" id="idResult">------</div><div id="decision">認識結果はここに表示されます。</div>
-<p class="hint">約3秒間隔で読み取り、同じ6桁を2回連続で検出したら確定します。誤検知を完全に防ぐものではありません。</p>
+<p class="hint">約3秒間隔で読み取り、同じ6桁を2回連続で検出したら確定します。一致すると監視を停止します。OCRの誤認識を完全には防げません。</p>
+</section>
+<section>
+<h2>③ ntfy通知</h2>
+<p class="hint">ntfyアプリで <code>ntfy.sh</code> の同じトピックを購読してください。トピックは公開可能な名前のため、推測されにくいランダムな名前を使用してください。</p>
+<label class="input-label" for="ntfyTopic">ntfyトピック名（URL全体ではなく名前だけ）</label>
+<input id="ntfyTopic" placeholder="例: pla_alert_F8p4xK7z29Qm" maxlength="64" autocomplete="off" spellcheck="false" autocapitalize="none">
+<p class="fieldnote">例：<code>https://ntfy.sh/pla_alert_F8p4xK7z29Qm</code> を購読している場合、入力するのは <code>pla_alert_F8p4xK7z29Qm</code> です。入力値はこのiPhoneのブラウザーに保存され、公開HTMLには書き込まれません。</p>
+<label class="toggle"><input id="ntfyEnabled" type="checkbox" checked>条件一致時にntfy通知を送信</label>
+<div class="actions"><button id="ntfyTest" class="secondary" type="button">通知テストを送信</button><button id="resetNotified" class="secondary" type="button">通知履歴をリセット</button></div>
+<div id="ntfyStatus" class="statusline" role="status" aria-live="polite">ntfy未設定</div>
+<p class="hint">一致時はこのページを停止し、ntfyへ送信します。通知の送信成功と、iPhoneにバナーが届いたことは別です。Safariを閉じたり他のアプリへ移ったりするとカメラ監視は継続できません。</p>
 </section>
 <section><h2>動作ログ</h2><div id="logs" role="log"></div></section>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
@@ -36,6 +52,65 @@
 const $=id=>document.getElementById(id);
 const video=$('camera'),overlay=$('overlay'),area=$('videoArea'),crop=$('crop');
 let stream=null,roi=null,drag=null,worker=null,reading=false,timer=null,last='',streak=0,stopRequested=false,audioCtx=null;
+const notifiedIds = new Set();
+function stored(key, fallback=''){try{return localStorage.getItem(key) ?? fallback}catch(_){return fallback}}
+function store(key, value){try{localStorage.setItem(key,value)}catch(_){}}
+function resetRecognition(){last='';streak=0;$('idResult').className='id'}
+function compilePattern(){
+  const pattern=$('pattern').value.trim();
+  if(/^[0-9xX]{6}$/.test(pattern)){
+    const source='^'+[...pattern].map(c=>(c==='x'||c==='X')?'[0-9]':c).join('')+'$';
+    return new RegExp(source);
+  }
+  if(pattern.startsWith('^') && pattern.endsWith('$')){
+    try{return new RegExp(pattern)}catch(_){throw Error('正規表現の書き方が正しくありません')}
+  }
+  throw Error('6桁の数字とx（例: xx39xx）を指定するか、^...$ 形式の正規表現を入力してください');
+}
+function refreshPreset(){const val=$('pattern').value.trim().toLowerCase();document.querySelectorAll('[data-mask]').forEach(b=>b.classList.toggle('active',b.dataset.mask===val))}
+$('pattern').value=stored('pla_id_mask_v4','39xxxx');
+$('ntfyTopic').value=stored('pla_ntfy_topic_v4','');
+$('ntfyEnabled').checked=stored('pla_ntfy_enabled_v4','1')==='1';
+$('pattern').addEventListener('input',()=>{resetRecognition();refreshPreset();store('pla_id_mask_v4',$('pattern').value)});
+document.querySelectorAll('[data-mask]').forEach(b=>b.addEventListener('click',()=>{$('pattern').value=b.dataset.mask;$('pattern').dispatchEvent(new Event('input'))}));
+refreshPreset();
+$('ntfyTopic').addEventListener('input',()=>{store('pla_ntfy_topic_v4',$('ntfyTopic').value.trim());$('ntfyStatus').textContent='通知先を変更しました。通知テストを実施してください。'});
+$('ntfyEnabled').addEventListener('change',()=>store('pla_ntfy_enabled_v4',$('ntfyEnabled').checked?'1':'0'));
+function topicUrl(){
+ const topic=$('ntfyTopic').value.trim();
+ if(!/^[A-Za-z0-9_-]{1,64}$/.test(topic))throw Error('ntfyトピック名は英数字・_・- の64文字以内で入力してください');
+ return 'https://ntfy.sh/'+encodeURIComponent(topic);
+}
+async function sendNtfy(message){
+  const url=topicUrl();
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+    // Simple POST to ntfy; no special headers/preflight required.
+    const response=await fetch(url,{method:'POST',body:message,signal:controller.signal,cache:'no-store'});
+    if(!response.ok)throw Error('HTTP '+response.status);
+  }finally{clearTimeout(timeout)}
+}
+async function notifyMatch(found){
+  if(!$('ntfyEnabled').checked){$('ntfyStatus').textContent='一致：ntfy通知はオフです';return}
+  if(notifiedIds.has(found)){$('ntfyStatus').textContent='ID '+found+' はこのページで通知済みです';log('ntfy重複通知を省略 '+found);return}
+  $('ntfyStatus').textContent='一致したID '+found+' をntfyへ送信中…';
+  try{
+    const mask=$('pattern').value.trim();
+    await sendNtfy('PLA Trainer ID MATCH!\nID: '+found+'\nPattern: '+mask+'\nTime: '+new Date().toLocaleString('ja-JP'));
+    notifiedIds.add(found);
+    $('ntfyStatus').textContent='ntfy送信成功：'+found+'（アプリへの到着は別途確認）';
+    log('ntfy送信成功 '+found);
+  }catch(e){$('ntfyStatus').textContent='ntfy送信失敗：'+e.message;log('ntfy送信失敗 '+e.message)}
+}
+$('ntfyTest').onclick=async()=>{
+  $('ntfyTest').disabled=true;$('ntfyStatus').textContent='通知テストを送信中…';
+  try{await sendNtfy('PLA ID OCR: ntfy test notification\nTime: '+new Date().toLocaleString('ja-JP'));$('ntfyStatus').textContent='テスト送信成功。ntfyアプリへの到着を確認してください。';log('ntfyテスト送信成功')}
+  catch(e){$('ntfyStatus').textContent='テスト送信失敗：'+e.message;log('ntfyテスト送信失敗 '+e.message)}
+  finally{$('ntfyTest').disabled=false}
+};
+$('resetNotified').onclick=()=>{notifiedIds.clear();$('ntfyStatus').textContent='通知済みIDの履歴をリセットしました';log('通知履歴リセット')};
+
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function log(s){$('logs').textContent=new Date().toLocaleTimeString('ja-JP')+' '+s+'\n'+$('logs').textContent.slice(0,3000)}
 function bounds(){const aw=area.clientWidth,ah=area.clientHeight,vw=video.videoWidth||16,vh=video.videoHeight||9,scale=Math.min(aw/vw,ah/vh),w=vw*scale,h=vh*scale;return{x:(aw-w)/2,y:(ah-h)/2,w,h}}
@@ -55,10 +130,10 @@ $('preview').onclick=()=>{try{capture();log('切り出し画像を更新')}catch
 function stopMonitoring(){stopRequested=true;if(timer){clearInterval(timer);timer=null}if(reading)$('status').textContent='停止処理中';else $('status').textContent='停止中'}
 $('stop').onclick=()=>{stopMonitoring();log('監視を停止')};
 async function beep(){try{if(!audioCtx)return;await audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=860;g.gain.value=.10;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.35)}catch(_){}}
-async function analyze(){if(reading)return;if(!stream){log('カメラ未起動');return}reading=true;$('status').textContent='読取中';try{const canvas=capture();if(!worker){if(!window.Tesseract)throw Error('OCRライブラリを取得できません。インターネット接続を確認してください。');$('status').textContent='OCRの準備中（初回のみ時間がかかります）';worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}const r=await worker.recognize(canvas);if(stopRequested)return;const digits=(r.data.text||'').replace(/[^0-9]/g,'');const found=/^\d{6}$/.test(digits)?digits:'';$('idResult').textContent=found||'------';$('status').textContent='読取終了（参考信頼度 '+Math.round(r.data.confidence||0)+'%）';if(!found){last='';streak=0;$('decision').textContent='6桁を読めませんでした。枠・反射・ピントを調整してください。';return}if(found===last)streak++;else{last=found;streak=1}if(streak<2){$('decision').textContent='読取候補：'+found+'（あと1回同じ結果で確定）';return}const regex=new RegExp($('pattern').value.trim());const ok=regex.test(found);$('idResult').className='id '+(ok?'found':'bad');$('decision').textContent=ok?'条件一致：'+found+'。監視を停止しました。':'条件不一致：'+found+'。監視を続けます。';log((ok?'一致':'不一致')+' '+found);if(ok){stopMonitoring();navigator.vibrate?.([200,100,200]);beep()}}
+async function analyze(){if(reading)return;if(!stream){log('カメラ未起動');return}reading=true;$('status').textContent='読取中';try{const canvas=capture();if(!worker){if(!window.Tesseract)throw Error('OCRライブラリを取得できません。インターネット接続を確認してください。');$('status').textContent='OCRの準備中（初回のみ時間がかかります）';worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}const r=await worker.recognize(canvas);if(stopRequested)return;const digits=(r.data.text||'').replace(/[^0-9]/g,'');const found=/^\d{6}$/.test(digits)?digits:'';$('idResult').textContent=found||'------';$('status').textContent='読取終了（参考信頼度 '+Math.round(r.data.confidence||0)+'%）';if(!found){last='';streak=0;$('decision').textContent='6桁を読めませんでした。枠・反射・ピントを調整してください。';return}if(found===last)streak++;else{last=found;streak=1}if(streak<2){$('decision').textContent='読取候補：'+found+'（あと1回同じ結果で確定）';return}const regex=compilePattern();const ok=regex.test(found);$('idResult').className='id '+(ok?'found':'bad');$('decision').textContent=ok?'条件一致：'+found+'。監視を停止しました。':'条件不一致：'+found+'。監視を続けます。';log((ok?'一致':'不一致')+' '+found);if(ok){stopMonitoring();navigator.vibrate?.([200,100,200]);beep();await notifyMatch(found)}}
 catch(e){$('status').textContent='認識エラー';log(e.message)}finally{reading=false}}
-$('once').onclick=()=>{stopRequested=false;analyze()};
-$('monitor').onclick=()=>{try{new RegExp($('pattern').value.trim())}catch(e){alert('ID条件の書き方が正しくありません');return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}stopMonitoring();stopRequested=false;last='';streak=0;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
+$('once').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}stopRequested=false;analyze()};
+$('monitor').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}stopMonitoring();stopRequested=false;resetRecognition();try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMonitoring();log('Safariが非表示になったため停止')}});
 window.addEventListener('pagehide',()=>{stopCamera();worker?.terminate()});
 </script>
