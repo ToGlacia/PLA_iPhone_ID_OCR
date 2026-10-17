@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PLA トレーナーID読み取りテスト</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:#101522;color:#eef2fa;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:700px}h1{font-size:21px;margin:2px 0 8px}h2{font-size:16px;margin:0 0 10px}p{line-height:1.6;color:#c4cdde;font-size:14px}section{border:1px solid #394156;background:#1b2333;border-radius:14px;padding:14px;margin:12px 0}button{min-height:44px;border:0;border-radius:9px;padding:10px 13px;font-size:15px;background:#3864b5;color:#fff;cursor:pointer}button.secondary{background:#3b465b}button.stop{background:#863f49}button:disabled{opacity:.5}input{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hint{font-size:12px;color:#bdc7d9}.pill{font-size:13px;background:#29374a;border-radius:8px;padding:8px 10px;display:inline-block}.id{font-size:36px;font-weight:800;letter-spacing:5px;text-align:center;font-variant-numeric:tabular-nums;margin:14px 0}.found{color:#9be3b7}.bad{color:#f1bc91}#videoArea{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:160px;touch-action:none}#camera{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}#crop{display:block;width:100%;max-width:480px;height:95px;background:#000;border-radius:8px;object-fit:contain}#logs{font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;color:#bdc7d9}.success{color:#9be3b7}
+</style>
+</head>
+<body>
+<h1>PLA トレーナーID読み取り</h1>
+<p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取る試験版です。<strong>Switchの操作・セーブ削除は実行しません。</strong></p>
+<section>
+<h2>① カメラを起動</h2>
+<div class="actions"><button id="camStart">カメラを開始</button><button class="secondary" id="camStop">カメラを停止</button></div>
+<p class="hint">Switch LiteでIDNo.の数字が出ている画面を表示してください。映像内の6桁の数字だけを<strong>指でドラッグして黄色い枠で囲みます</strong>。数字の上下左右に少し余白を取ってください。</p>
+<div id="videoArea"><video id="camera" autoplay muted playsinline></video><canvas id="overlay"></canvas></div>
+<div class="actions"><button class="secondary" id="defaultArea">中央に仮枠を設定</button><button class="secondary" id="preview">切り出し画像を確認</button></div>
+<canvas id="crop" width="720" height="135"></canvas>
+</section>
+<section>
+<h2>② IDの認識・条件判定</h2>
+<label for="pattern">希望するIDの条件（正規表現）</label>
+<input id="pattern" value="^39\d{4}$" spellcheck="false" autocomplete="off" aria-label="ID条件">
+<p class="hint">例：<code>^39\d{4}$</code> は39から始まる6桁、<code>^\d{4}39$</code> は39で終わる6桁です。</p>
+<div class="actions"><button id="once">1回読み取る</button><button id="monitor">連続監視を開始</button><button id="stop" class="stop">停止</button></div>
+<div class="pill" id="status">待機中</div><div class="id" id="idResult">------</div><div id="decision">認識結果はここに表示されます。</div>
+<p class="hint">約3秒間隔で読み取り、同じ6桁を2回連続で検出したら確定します。誤検知を完全に防ぐものではありません。</p>
+</section>
+<section><h2>動作ログ</h2><div id="logs" role="log"></div></section>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const video=$('camera'),overlay=$('overlay'),area=$('videoArea'),crop=$('crop');
+let stream=null,roi=null,drag=null,worker=null,reading=false,timer=null,last='',streak=0,stopRequested=false,audioCtx=null;
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function log(s){$('logs').textContent=new Date().toLocaleTimeString('ja-JP')+' '+s+'\n'+$('logs').textContent.slice(0,3000)}
+function bounds(){const aw=area.clientWidth,ah=area.clientHeight,vw=video.videoWidth||16,vh=video.videoHeight||9,scale=Math.min(aw/vw,ah/vh),w=vw*scale,h=vh*scale;return{x:(aw-w)/2,y:(ah-h)/2,w,h}}
+function paint(){const w=area.clientWidth,h=area.clientHeight,dpr=devicePixelRatio||1;overlay.width=Math.round(w*dpr);overlay.height=Math.round(h*dpr);const ctx=overlay.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const r=drag?.rect||roi;if(!r)return;const b=bounds();ctx.strokeStyle='#fadd44';ctx.lineWidth=3;ctx.strokeRect(b.x+r.x*b.w,b.y+r.y*b.h,r.w*b.w,r.h*b.h)}
+function point(e){const rect=overlay.getBoundingClientRect(),b=bounds();return{x:Math.max(0,Math.min(1,(e.clientX-rect.left-b.x)/b.w)),y:Math.max(0,Math.min(1,(e.clientY-rect.top-b.y)/b.h))}}
+function makeRect(a,b){return{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)}}
+overlay.addEventListener('pointerdown',e=>{if(!stream)return;overlay.setPointerCapture(e.pointerId);drag={start:point(e),rect:null}});
+overlay.addEventListener('pointermove',e=>{if(!drag)return;drag.rect=makeRect(drag.start,point(e));paint()});
+overlay.addEventListener('pointerup',e=>{if(!drag)return;const r=makeRect(drag.start,point(e));if(r.w>.01&&r.h>.01){roi=r;log('認識枠を設定しました')}drag=null;paint()});
+window.addEventListener('resize',paint);
+$('camStart').onclick=async()=>{try{stopCamera();if(!navigator.mediaDevices?.getUserMedia)throw Error('HTTPSで開いてください');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;await video.play();area.style.minHeight='0';paint();log('カメラ開始')}catch(e){log('カメラ開始失敗: '+e.message);alert('カメラを利用できません。GitHub PagesなどHTTPSで開き、Safariのカメラ許可を確認してください。')}};
+function stopCamera(){stopMonitoring();if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;area.style.minHeight='160px'}
+$('camStop').onclick=()=>{stopCamera();paint();log('カメラ停止')};
+$('defaultArea').onclick=()=>{roi={x:.35,y:.44,w:.3,h:.13};paint();log('中央に仮枠を表示')};
+function capture(){if(!stream||!video.videoWidth||!roi)throw Error('カメラを開始し、数字6桁を囲んでください');const w=video.videoWidth,h=video.videoHeight;const sx=Math.floor(roi.x*w),sy=Math.floor(roi.y*h),sw=Math.max(1,Math.floor(roi.w*w)),sh=Math.max(1,Math.floor(roi.h*h));const ctx=crop.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#fff';ctx.fillRect(0,0,crop.width,crop.height);ctx.drawImage(video,sx,sy,sw,sh,0,0,crop.width,crop.height);return crop}
+$('preview').onclick=()=>{try{capture();log('切り出し画像を更新')}catch(e){alert(e.message)}};
+function stopMonitoring(){stopRequested=true;if(timer){clearInterval(timer);timer=null}if(reading)$('status').textContent='停止処理中';else $('status').textContent='停止中'}
+$('stop').onclick=()=>{stopMonitoring();log('監視を停止')};
+async function beep(){try{if(!audioCtx)return;await audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=860;g.gain.value=.10;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.35)}catch(_){}}
+async function analyze(){if(reading)return;if(!stream){log('カメラ未起動');return}reading=true;$('status').textContent='読取中';try{const canvas=capture();if(!worker){if(!window.Tesseract)throw Error('OCRライブラリを取得できません。インターネット接続を確認してください。');$('status').textContent='OCRの準備中（初回のみ時間がかかります）';worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}const r=await worker.recognize(canvas);if(stopRequested)return;const digits=(r.data.text||'').replace(/[^0-9]/g,'');const found=/^\d{6}$/.test(digits)?digits:'';$('idResult').textContent=found||'------';$('status').textContent='読取終了（参考信頼度 '+Math.round(r.data.confidence||0)+'%）';if(!found){last='';streak=0;$('decision').textContent='6桁を読めませんでした。枠・反射・ピントを調整してください。';return}if(found===last)streak++;else{last=found;streak=1}if(streak<2){$('decision').textContent='読取候補：'+found+'（あと1回同じ結果で確定）';return}const regex=new RegExp($('pattern').value.trim());const ok=regex.test(found);$('idResult').className='id '+(ok?'found':'bad');$('decision').textContent=ok?'条件一致：'+found+'。監視を停止しました。':'条件不一致：'+found+'。監視を続けます。';log((ok?'一致':'不一致')+' '+found);if(ok){stopMonitoring();navigator.vibrate?.([200,100,200]);beep()}}
+catch(e){$('status').textContent='認識エラー';log(e.message)}finally{reading=false}}
+$('once').onclick=()=>{stopRequested=false;analyze()};
+$('monitor').onclick=()=>{try{new RegExp($('pattern').value.trim())}catch(e){alert('ID条件の書き方が正しくありません');return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}stopMonitoring();stopRequested=false;last='';streak=0;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMonitoring();log('Safariが非表示になったため停止')}});
+window.addEventListener('pagehide',()=>{stopCamera();worker?.terminate()});
+</script>
+</body>
+</html>
