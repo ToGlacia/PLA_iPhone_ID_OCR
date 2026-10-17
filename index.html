@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PLA ID読み取り・Switch連携 v5</title>
+<title>PLA ID読み取り・Switch連携 v6</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:#101522;color:#eef2fa;color-scheme:dark}
-*{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:700px}h1{font-size:21px;margin:2px 0 8px}h2{font-size:16px;margin:0 0 10px}p{line-height:1.6;color:#c4cdde;font-size:14px}section{border:1px solid #394156;background:#1b2333;border-radius:14px;padding:14px;margin:12px 0}button{min-height:44px;border:0;border-radius:9px;padding:10px 13px;font-size:15px;background:#3864b5;color:#fff;cursor:pointer}button.secondary{background:#3b465b}button.stop{background:#863f49}button:disabled{opacity:.5}input{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hint{font-size:12px;color:#bdc7d9}.pill{font-size:13px;background:#29374a;border-radius:8px;padding:8px 10px;display:inline-block}.id{font-size:36px;font-weight:800;letter-spacing:5px;text-align:center;font-variant-numeric:tabular-nums;margin:14px 0}.found{color:#9be3b7}.bad{color:#f1bc91}#videoArea{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:160px;touch-action:none}#camera{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}#crop{display:block;width:100%;max-width:480px;height:95px;background:#000;border-radius:8px;object-fit:contain}#logs{font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;color:#bdc7d9}.success{color:#9be3b7}.preset{background:#3b465b;font-size:14px}.preset.active{outline:2px solid #fadd44}.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:#edf1f9}.toggle input{width:20px;height:20px;flex:none;accent-color:#4e86e6}.statusline{font-size:13px;line-height:1.5;min-height:20px;margin:8px 0}.input-label{display:block;margin:10px 0 5px;font-size:14px}.fieldnote{color:#b0bed6;font-size:12px}
-#mqttStatus{font-size:13px;min-height:28px;line-height:1.6;color:#c8d7e9}#btnMqttTap{background:#3e7661}.warning{border-left:3px solid #d2ac46;padding-left:9px}
+*{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:700px}h1{font-size:21px;margin:2px 0 8px}h2{font-size:16px;margin:0 0 10px}p{line-height:1.6;color:#c4cdde;font-size:14px}section{border:1px solid #394156;background:#1b2333;border-radius:14px;padding:14px;margin:12px 0}button{min-height:44px;border:0;border-radius:9px;padding:10px 13px;font-size:15px;background:#3864b5;color:#fff;cursor:pointer}button.secondary{background:#3b465b}button.stop{background:#863f49}button:disabled{opacity:.5}select{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}input{display:block;border:1px solid #536580;border-radius:8px;width:100%;color:#fff;background:#0c1424;padding:12px;font-size:16px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.hint{font-size:12px;color:#bdc7d9}.pill{font-size:13px;background:#29374a;border-radius:8px;padding:8px 10px;display:inline-block}.id{font-size:36px;font-weight:800;letter-spacing:5px;text-align:center;font-variant-numeric:tabular-nums;margin:14px 0}.found{color:#9be3b7}.bad{color:#f1bc91}#videoArea{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:160px;touch-action:none}#camera{display:block;width:100%;height:auto;max-height:65vh;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}#crop{display:block;width:100%;max-width:480px;height:95px;background:#000;border-radius:8px;object-fit:contain}#logs{font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;color:#bdc7d9}.success{color:#9be3b7}.preset{background:#3b465b;font-size:14px}.preset.active{outline:2px solid #fadd44}.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:#edf1f9}.toggle input{width:20px;height:20px;flex:none;accent-color:#4e86e6}.statusline{font-size:13px;line-height:1.5;min-height:20px;margin:8px 0}.input-label{display:block;margin:10px 0 5px;font-size:14px}.fieldnote{color:#b0bed6;font-size:12px}
+#macroStatus{font-size:13px;line-height:1.6;color:#d4e5f3;min-height:24px}#mqttStatus{font-size:13px;min-height:28px;line-height:1.6;color:#c8d7e9}#btnMqttTap{background:#3e7661}.warning{border-left:3px solid #d2ac46;padding-left:9px}
 </style>
 </head>
 <body>
-<h1>PLA トレーナーID読み取り・Switch連携 v5</h1>
-<p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取り、条件一致時にntfyへ通知する試験版です。<strong>安全な操作テストのみ対応しています。<strong>セーブ削除・自動周回は行いません。</strong></strong></p>
+<h1>PLA トレーナーID読み取り・Switch連携 v6</h1>
+<p>iPhoneカメラでPokémon HOMEに表示される6桁のIDを読み取り、条件一致時にntfyへ通知する試験版です。<strong>セーブデータ削除やゲームの自動周回は行いません。</strong></p>
 <section>
 <h2>① カメラを起動</h2>
 <div class="actions"><button id="camStart">カメラを開始</button><button class="secondary" id="camStop">カメラを停止</button></div>
@@ -33,12 +33,12 @@
 <p class="hint"><strong>xは任意の数字1桁</strong>です。例：<code>xx39xx</code> は3・4桁目が39のIDに一致します。従来の正規表現（例：<code>^\d{2}39\d{2}$</code>）も使用できます。</p>
 <div class="actions"><button id="once">1回読み取る</button><button id="monitor">連続監視を開始</button><button id="stop" class="stop">停止</button></div>
 <div class="pill" id="status">待機中</div><div class="id" id="idResult">------</div><div id="decision">認識結果はここに表示されます。</div>
-<p class="hint">約3秒間隔で読み取り、同じ6桁を2回連続で検出したら確定します。一致すると監視を停止します。OCRの誤認識を完全には防げません。</p>
+<p class="hint">約3秒間隔で読み取り、同じ6桁を2回連続で検出したら確定します。自動操作は別途チェックした場合のみ、不一致3回連続・OCR信頼度85%以上で実行します。一致すると監視を停止します。OCRの誤認識を完全には防げません。</p>
 </section>
 
 <section>
-<h2>③ Switch連携（安全なテスト）</h2>
-<p class="hint warning">GitHub PagesはHTTPS、Picoの操作ページはHTTPなので、直接通信はできません。テスト用の公開MQTT中継を利用します。<strong>公開中継では秘密の通信はできません。</strong> この段階ではA・B・左右の単発操作のみ許可します。セーブ削除、周回マクロ、長押し操作は無効です。</p>
+<h2>③ Switch連携（連続操作テスト）</h2>
+<p class="hint warning">GitHub PagesはHTTPS、Picoの操作ページはHTTPなので、直接通信はできません。テスト用の公開MQTT中継を利用します。<strong>公開中継では秘密の通信はできません。</strong> この段階ではA・B・左右の最大3回までの試験操作のみ許可します。セーブ削除、繰り返し周回、長押し操作は無効です。</p>
 <label class="input-label" for="mqttChannel">MQTTトピック末尾（Windowsで作成された mqtt_channel_private.txt の32桁）</label>
 <input id="mqttChannel" placeholder="32桁の英数字" autocomplete="off" spellcheck="false" autocapitalize="none">
 <label class="input-label" for="mqttToken">MQTT試験用の秘密キー（mqtt_channel_private.txt内）</label>
@@ -46,8 +46,16 @@
 <p class="hint">これらの値はこの端末だけに保存され、GitHubのHTMLには埋め込みません。ただし中継サーバーには平文のMQTTメッセージが流れるため、試験用としてのみ使用してください。</p>
 <div class="actions"><button id="mqttConnect">MQTT接続</button><button id="mqttDisconnect" class="secondary">切断</button><button id="btnMqttTap" class="secondary" disabled>Aを1回テスト</button></div>
 <div id="mqttStatus" role="status">未接続</div>
-<label class="toggle"><input type="checkbox" id="autoMiss">ID不一致を3回連続で読み取ったらAを1回だけ送信（試験用・初期OFF）</label>
-<p class="hint">1回送信したら監視は自動停止します。誤読・画面の移動による危険を避けるため、Switchの安全なメニュー画面でのみテストしてください。希望IDが一致した場合は従来通り停止・ntfy通知となり、操作は送信しません。</p>
+<label class="input-label" for="macroPreset">連続操作のテスト内容（最大3回）</label>
+<select id="macroPreset" aria-label="連続操作パターン">
+<option value="a3">A → A → A</option>
+<option value="rightleft">右 → 左</option>
+<option value="a1">Aを1回</option>
+</select>
+<div class="actions"><button id="runManualMacro" class="secondary" disabled>選択した操作を1セット試す</button><button id="stopMacro" class="stop">連続操作を停止</button></div>
+<div id="macroStatus" role="status">連続操作：待機中</div>
+<label class="toggle"><input type="checkbox" id="autoMiss">IDが3回連続で不一致なら上の操作を1セット実行（初期OFF）</label>
+<p class="hint warning">安全なHOME画面などでのみテストしてください。OCRの信頼度85%以上が必要です。<strong>1セット実行したら必ず監視を停止し、自動で再開しません。</strong> 停止しても送信済みのボタンは取り消せません。iPhoneの画面は開いたままにしてください。</p>
 </section>
 <section>
 <h2>④ ntfy通知</h2>
@@ -72,6 +80,8 @@ const notifiedIds = new Set();
 
 // MQTT bridge (test-only). No save delete, no unbounded macros.
 let mqttClient = null, mqttReady = false, autoActionUsed = false;
+let macroRunning=false,macroGeneration=0;
+const macroPresets={a3:['a','a','a'],rightleft:['dpad_right','dpad_left'],a1:['a']};
 let lastMqttError = '';
 const mqttUI = text => $('mqttStatus').textContent = text;
 function mqttSettings(){
@@ -85,7 +95,7 @@ $('mqttChannel').value=stored('pla_mqtt_suffix_v5','');
 $('mqttToken').value=stored('pla_mqtt_token_v5','');
 $('mqttChannel').addEventListener('change',()=>store('pla_mqtt_suffix_v5',$('mqttChannel').value.trim()));
 $('mqttToken').addEventListener('change',()=>store('pla_mqtt_token_v5',$('mqttToken').value));
-function mqttDisableButtons(){mqttReady=false;$('btnMqttTap').disabled=true}
+function mqttDisableButtons(){mqttReady=false;$('btnMqttTap').disabled=true;cancelMacro('MQTT接続が切れました');syncMacroButtons()}
 function mqttDisconnect(){
  mqttDisableButtons();
  if(mqttClient){const c=mqttClient;mqttClient=null;c.end(true)}
@@ -99,11 +109,11 @@ $('mqttConnect').onclick=()=>{
  if(mqttClient)mqttDisconnect();
  mqttUI('接続中…');
  const c=mqtt.connect('wss://broker.emqx.io:8084/mqtt',{
-   protocolVersion:4,clean:true,keepalive:30,reconnectPeriod:4000,
+   protocolVersion:4,clean:true,keepalive:30,reconnectPeriod:4000,queueQoSZero:false,
    clientId:'pla-ocr-'+Math.random().toString(16).slice(2)
  });
  mqttClient=c;
- c.on('connect',()=>{if(mqttClient!==c)return;mqttReady=true;$('btnMqttTap').disabled=false;mqttUI('中継に接続しました（Picoが受信できたかはAボタン試験で確認）');log('MQTT WSS接続')});
+ c.on('connect',()=>{if(mqttClient!==c)return;mqttReady=true;$('btnMqttTap').disabled=false;syncMacroButtons();mqttUI('中継に接続しました（Picoが受信できたかはAボタン試験で確認）');log('MQTT WSS接続')});
  c.on('reconnect',()=>{if(mqttClient===c){mqttDisableButtons();mqttUI('再接続中…')}});
  c.on('close',()=>{if(mqttClient===c){mqttDisableButtons();mqttUI('中継から切断されました')}});
  c.on('error',e=>{if(mqttClient===c&&lastMqttError!==e.message){lastMqttError=e.message;mqttUI('中継エラー: '+e.message);log('MQTT '+e.message)}});
@@ -126,6 +136,53 @@ $('btnMqttTap').onclick=async()=>{
  finally{$('btnMqttTap').disabled=!mqttReady}
 };
 $('autoMiss').checked=false;
+function syncMacroButtons(){
+ $('runManualMacro').disabled=!mqttReady||macroRunning;
+ $('macroPreset').disabled=macroRunning;
+}
+function cancelMacro(reason='操作を停止しました'){
+ ++macroGeneration; // already published MQTT messages cannot be recalled
+ if(macroRunning){macroRunning=false;log('連続操作停止: '+reason)}
+ $('macroStatus').textContent='連続操作：'+reason;
+ syncMacroButtons();
+}
+async function runMacro(reason){
+ if(macroRunning)throw Error('連続操作が既に実行中です');
+ if(!mqttReady)throw Error('MQTT接続を先に確認してください');
+ if(document.hidden)throw Error('Safariを前面表示してください');
+ const steps=macroPresets[$('macroPreset').value];
+ if(!steps||steps.length<1||steps.length>3)throw Error('操作内容が不正です');
+ // Every run has its own cancellation generation.
+ const generation=++macroGeneration;
+ macroRunning=true;
+ syncMacroButtons();
+ $('macroStatus').textContent='連続操作：実行中（'+reason+'）';
+ log('連続操作開始 '+reason+' : '+steps.join(' → '));
+ try{
+   for(let i=0;i<steps.length;i++){
+     if(generation!==macroGeneration||document.hidden||!mqttReady)throw Error('途中で停止しました');
+     await mqttTap(steps[i]);
+     log('連続操作 '+(i+1)+'/'+steps.length+' : '+steps[i]+'（MQTT送信）');
+     if(i<steps.length-1)await sleep(950); // Pico has time to finish each ~180ms press
+   }
+   if(generation===macroGeneration){
+     $('macroStatus').textContent='連続操作：送信完了（Switchの画面とPicoのOK回数を確認）';
+     log('連続操作セット送信完了');
+   }
+ }catch(e){
+   if(generation===macroGeneration){$('macroStatus').textContent='連続操作：'+e.message;log('連続操作エラー: '+e.message)}
+ }finally{
+   if(generation===macroGeneration){macroRunning=false;syncMacroButtons()}
+ }
+}
+$('runManualMacro').onclick=async()=>{
+ if(!window.confirm('Switch Liteが安全な画面にあることを確認してください。選択したボタン操作を1セットだけ送信します。実行しますか？'))return;
+ stopMonitoring();
+ await runMacro('手動テスト');
+};
+$('stopMacro').onclick=()=>{cancelMacro('手動停止');$('autoMiss').checked=false};
+$('macroPreset').addEventListener('change',()=>{$('macroStatus').textContent='連続操作：'+macroPresets[$('macroPreset').value].join(' → ')+' を選択中'});
+syncMacroButtons();
 
 function stored(key, fallback=''){try{return localStorage.getItem(key) ?? fallback}catch(_){return fallback}}
 function store(key, value){try{localStorage.setItem(key,value)}catch(_){}}
@@ -196,29 +253,29 @@ overlay.addEventListener('pointermove',e=>{if(!drag)return;drag.rect=makeRect(dr
 overlay.addEventListener('pointerup',e=>{if(!drag)return;const r=makeRect(drag.start,point(e));if(r.w>.01&&r.h>.01){roi=r;log('認識枠を設定しました')}drag=null;paint()});
 window.addEventListener('resize',paint);
 $('camStart').onclick=async()=>{try{stopCamera();if(!navigator.mediaDevices?.getUserMedia)throw Error('HTTPSで開いてください');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;await video.play();area.style.minHeight='0';paint();log('カメラ開始')}catch(e){log('カメラ開始失敗: '+e.message);alert('カメラを利用できません。GitHub PagesなどHTTPSで開き、Safariのカメラ許可を確認してください。')}};
-function stopCamera(){stopMonitoring();if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;area.style.minHeight='160px'}
+function stopCamera(){stopMonitoring();cancelMacro('カメラ停止');$('autoMiss').checked=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;area.style.minHeight='160px'}
 $('camStop').onclick=()=>{stopCamera();paint();log('カメラ停止')};
 $('defaultArea').onclick=()=>{roi={x:.35,y:.44,w:.3,h:.13};paint();log('中央に仮枠を表示')};
 function capture(){if(!stream||!video.videoWidth||!roi)throw Error('カメラを開始し、数字6桁を囲んでください');const w=video.videoWidth,h=video.videoHeight;const sx=Math.floor(roi.x*w),sy=Math.floor(roi.y*h),sw=Math.max(1,Math.floor(roi.w*w)),sh=Math.max(1,Math.floor(roi.h*h));const ctx=crop.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#fff';ctx.fillRect(0,0,crop.width,crop.height);ctx.drawImage(video,sx,sy,sw,sh,0,0,crop.width,crop.height);return crop}
 $('preview').onclick=()=>{try{capture();log('切り出し画像を更新')}catch(e){alert(e.message)}};
 function stopMonitoring(){stopRequested=true;if(timer){clearInterval(timer);timer=null}if(reading)$('status').textContent='停止処理中';else $('status').textContent='停止中'}
-$('stop').onclick=()=>{stopMonitoring();log('監視を停止')};
+$('stop').onclick=()=>{stopMonitoring();cancelMacro('監視停止ボタンを押しました');$('autoMiss').checked=false;log('監視を停止')};
 async function beep(){try{if(!audioCtx)return;await audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=860;g.gain.value=.10;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.35)}catch(_){}}
 async function analyze(){if(reading)return;if(!stream){log('カメラ未起動');return}reading=true;$('status').textContent='読取中';try{const canvas=capture();if(!worker){if(!window.Tesseract)throw Error('OCRライブラリを取得できません。インターネット接続を確認してください。');$('status').textContent='OCRの準備中（初回のみ時間がかかります）';worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}const r=await worker.recognize(canvas);if(stopRequested)return;const digits=(r.data.text||'').replace(/[^0-9]/g,'');const found=/^\d{6}$/.test(digits)?digits:'';$('idResult').textContent=found||'------';$('status').textContent='読取終了（参考信頼度 '+Math.round(r.data.confidence||0)+'%）';if(!found){last='';streak=0;$('decision').textContent='6桁を読めませんでした。枠・反射・ピントを調整してください。';return}if(found===last)streak++;else{last=found;streak=1}if(streak<2){$('decision').textContent='読取候補：'+found+'（あと1回同じ結果で確定）';return}const regex=compilePattern();const ok=regex.test(found);$('idResult').className='id '+(ok?'found':'bad');$('decision').textContent=ok?'条件一致：'+found+'。監視を停止しました。':'条件不一致：'+found+'。監視を続けます。';log((ok?'一致':'不一致')+' '+found);
 if(ok){stopMonitoring();navigator.vibrate?.([200,100,200]);beep();await notifyMatch(found)}
 else if(timer && $('autoMiss').checked && !autoActionUsed && streak >= 3 &&
         Number(r.data.confidence || 0) >= 85 && mqttReady) {
   autoActionUsed=true;
-  stopMonitoring(); // fail-closed; never repeatedly press on an unchanged ID
-  try {await mqttTap('a');log('ID不一致のため、Aを1回だけ送信: '+found);
-       $('decision').textContent='不一致 '+found+'：Aを1回送信しました。監視停止中。';}
-  catch(e){log('A送信失敗: '+e.message);$('decision').textContent='不一致：A送信に失敗しました。 '+e.message;}
+  $('autoMiss').checked=false; // explicitly re-arm on every attempt
+  stopMonitoring(); // fail closed: no second set on same or different ID
+  $('decision').textContent='ID不一致 '+found+'：選択した操作を1セット送信して監視を停止します。';
+  await runMacro('不一致ID '+found);
 }}
 catch(e){$('status').textContent='認識エラー';log(e.message)}finally{reading=false}}
 $('once').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}stopRequested=false;analyze()};
-$('monitor').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}stopMonitoring();stopRequested=false;resetRecognition();autoActionUsed=false;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
-document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMonitoring();log('Safariが非表示になったため停止')}});
-window.addEventListener('pagehide',()=>{stopCamera();mqttDisconnect();worker?.terminate()});
+$('monitor').onclick=()=>{try{compilePattern()}catch(e){alert(e.message);return}if(!stream||!roi){alert('カメラと認識枠を設定してください');return}if(macroRunning){alert('連続操作中です。完了後に開始してください');return}if($('autoMiss').checked&&!mqttReady){alert('自動操作を有効にするにはMQTT接続が必要です');return}stopMonitoring();stopRequested=false;resetRecognition();autoActionUsed=false;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(_){}timer=setInterval(analyze,3000);analyze();log('連続監視開始')};
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMonitoring();cancelMacro('Safariが非表示になりました');$('autoMiss').checked=false;log('Safariが非表示になったため停止')}});
+window.addEventListener('pagehide',()=>{stopCamera();cancelMacro('ページを閉じました');mqttDisconnect();worker?.terminate()});
 </script>
 </body>
 </html>
